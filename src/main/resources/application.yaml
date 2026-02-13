@@ -31,3 +31,7 @@ spring:
 
 server:
   port: 8282
+
+
+api:
+  version: 1.0

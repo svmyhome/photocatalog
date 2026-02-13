@@ -1,18 +1,30 @@
 package guru.qa.photocatalog.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import guru.qa.photocatalog.service.PhotoCatalogErrorAttributes;
 import java.text.SimpleDateFormat;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.error.ErrorAttributes;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class AppConfig {
 
+    @Value("${api.version}")
+    private String apiVersion;
 
     @Bean
     public ObjectMapper objectMapper() {
         ObjectMapper om = new ObjectMapper();
         om.setDateFormat(new SimpleDateFormat("dd-MM-yyyy"));
         return om;
+    }
+
+    @Bean
+    public ErrorAttributes errorAttributes() {
+        return new PhotoCatalogErrorAttributes(
+                apiVersion
+        );
     }
 }
