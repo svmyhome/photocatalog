@@ -1,12 +1,18 @@
 package guru.qa.photocatalog.service;
 
+import guru.qa.photocatalog.date.PhotoEntity;
 import guru.qa.photocatalog.date.PhotoRepository;
 import guru.qa.photocatalog.domain.Photo;
+import guru.qa.photocatalog.domain.graphql.PhotoGql;
+import guru.qa.photocatalog.domain.graphql.PhotoInputGql;
 import guru.qa.photocatalog.ex.PhotoNotFoundException;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -21,16 +27,23 @@ public class DbPhotoService implements PhotoService {
 
     @Override
     public List<Photo> allPhotos() {
-        return photoRepository.findAll()
-                .stream()
-                .map(fe -> {
-                    return new Photo(
-                            fe.getDescription(),
-                            fe.getLastModifyDate(),
-                            fe.getContent() != null ? new String(fe.getContent()) : ""
-                    );
-                        }
-                ).toList();
+        return photoRepository.findAll().stream()
+                .map(fe -> new Photo(
+                        fe.getDescription(),
+                        fe.getLastModifyDate(),
+                        fe.getContent().toString()
+                )).toList();
+    }
+
+    @Override
+    public Page<PhotoGql> allGqlPhotos(Pageable pageable) {
+        return photoRepository.findAll(pageable)
+                .map(fe -> new PhotoGql(
+                        fe.getId(),
+                        fe.getDescription(),
+                        fe.getLastModifyDate(),
+                        fe.getContent()!=null ? new String(fe.getContent()):""
+                ));
     }
 
     @Override
@@ -40,11 +53,37 @@ public class DbPhotoService implements PhotoService {
 
     @Override
     public Photo findById(String id) {
+        return Photo.fromGqlPhoto(photoGqlById(id));
+    }
+
+    @Override
+    public PhotoGql photoGqlById(String id) {
         return photoRepository.findById(UUID.fromString(id))
-                .map(fe -> new Photo(
-                            fe.getDescription(),
-                            fe.getLastModifyDate(),
-                            fe.getContent() != null ? new String(fe.getContent()) : ""
-                    )).orElseThrow(PhotoNotFoundException::new);
+                .map(fe -> new PhotoGql(
+                        fe.getId(),
+                        fe.getDescription(),
+                        fe.getLastModifyDate(),
+                        fe.getContent()!=null ? new String(fe.getContent()):""
+                )).orElseThrow(PhotoNotFoundException::new);
+    }
+
+    @Override
+    public Photo addPhoto(Photo photo) {
+        return null;
+    }
+
+    @Override
+    public PhotoGql addPhotoGql(PhotoInputGql photoInputGql) {
+        PhotoEntity pe = new PhotoEntity();
+        pe.setDescription(photoInputGql.description());
+        pe.setLastModifyDate(new Date());
+        pe.setContent(photoInputGql.content().getBytes(StandardCharsets.UTF_8));
+        PhotoEntity saved = photoRepository.save(pe);
+        return new PhotoGql(
+                saved.getId(),
+                saved.getDescription(),
+                saved.getLastModifyDate(),
+                new String(saved.getContent())
+        );
     }
 }
