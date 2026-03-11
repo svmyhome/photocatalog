@@ -40,6 +40,8 @@ spring:
 server:
   port: 8282
 
-
 api:
   version: 1.0
+
+photocatalog:
+  base-uri: 'http://localhost:8282'
