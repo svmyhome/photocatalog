@@ -4,15 +4,29 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import guru.qa.photocatalog.service.PhotoCatalogErrorAttributes;
 import java.text.SimpleDateFormat;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.boot.web.servlet.error.ErrorAttributes;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.ws.config.annotation.EnableWs;
+import org.springframework.ws.transport.http.MessageDispatcherServlet;
+import org.springframework.ws.wsdl.wsdl11.DefaultWsdl11Definition;
+import org.springframework.xml.xsd.SimpleXsdSchema;
+import org.springframework.xml.xsd.XsdSchema;
 
 @Configuration
+@EnableWs
 public class AppConfig {
+
+    public static final String SOAP_NAMESPACE = "photocatalog";
 
     @Value("${api.version}")
     private String apiVersion;
+
+    @Value("${photocatalog.base-uri}")
+    private String photocatalogBaseUri;
 
     @Bean
     public ObjectMapper objectMapper() {
@@ -26,5 +40,29 @@ public class AppConfig {
         return new PhotoCatalogErrorAttributes(
                 apiVersion
         );
+    }
+
+
+    @Bean
+    public ServletRegistrationBean<MessageDispatcherServlet> messageDispatcherServlet(ApplicationContext applicationContext) {
+        final MessageDispatcherServlet servlet = new MessageDispatcherServlet();
+        servlet.setApplicationContext(applicationContext);
+        servlet.setTransformWsdlLocations(true);
+        return new ServletRegistrationBean<>(servlet, "/ws/*");
+    }
+
+    @Bean(name = "photocatalog")
+    public DefaultWsdl11Definition defaultWsdl11Definition(XsdSchema photocatalogSchema) {
+        final DefaultWsdl11Definition wsdl11Definition = new DefaultWsdl11Definition();
+        wsdl11Definition.setPortTypeName("PhotocatalogPort");
+        wsdl11Definition.setLocationUri(photocatalogBaseUri + "/ws");
+        wsdl11Definition.setTargetNamespace(SOAP_NAMESPACE);
+        wsdl11Definition.setSchema(photocatalogSchema);
+        return wsdl11Definition;
+    }
+
+    @Bean
+    public XsdSchema photocatalogSchema() {
+        return new SimpleXsdSchema(new ClassPathResource("photocatalog.xsd"));
     }
 }
